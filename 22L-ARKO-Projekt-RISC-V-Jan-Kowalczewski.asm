@@ -16,6 +16,7 @@
 .eqv system_ReadFile	63
 .eqv system_WriteFile	64
 .eqv system_CloseFile	57
+.eqv system_RandIntRange 42
 
 	.data
 imgInfo: .space	24
@@ -30,6 +31,9 @@ imgData: 	.space	MAX_IMG_SIZE
 ifname:	.asciz "source.bmp"
 ofname: .asciz "result.bmp"
 
+n:		.word	3
+m:		.word	4
+
 	.text
 main:
 	la a0, imgInfo
@@ -43,6 +47,8 @@ main:
 	bnez a0, main_failure
 
 	la a0, imgInfo
+	lw a1, n
+	lw a2, m
 	jal spread_tiles
 
 	la a0, imgInfo
@@ -58,11 +64,36 @@ main_failure:
 # spread_tiles
 # arguments:
 # 	a0 - address of ImgInfo image descriptor
+#	a1 - n parameter
+#	a2 - m parameter
 # return:
 # 	none
 spread_tiles:
 	addi sp, sp, -4
 	sw ra, 0(sp) # push ra
+	mv s0, a0 # save a0 for later
+
+	lw a3, ImgInfo_height(a0)
+	div a3, a3, a1 # a3 - height of one puzzle in pixels
+
+	lw t0, ImgInfo_width(a0)
+	div t0, t0, a2
+	add a4, t0, t0
+	add a4, a4, t0 # a6 - width of one puzzle in bytes
+	mv a5, a2
+	li a7, system_RandIntRange
+	mul a1, a1, a2
+	addi a1, a1, -1
+
+spread_tiles_loop:
+	li a0, 0
+	ecall
+	mv a2, a0
+	mv a0, s0
+	jal exchange_puzzles
+	addi a1, a1, -1
+	bgt a1, zero, spread_tiles_loop
+
 
 spread_tiles_exit:
 	lw ra, 0(sp) # pop ra
@@ -70,7 +101,73 @@ spread_tiles_exit:
 	jr ra
 
 
+#============================================================================
+# exchange_puzzles
+# arguments:
+#	a0 - address of ImgInfo image descriptor
+#	a1 - number of first puzzle
+#	a2 - number of second puzzle
+#	a3 - height of one puzzle in pixels
+#	a4 - width of one puzzle in bytes
+#	a5 - m parameter
+# return value:
+#	none
+exchange_puzzles: # address = column * width_1_puzzle + row * height_1_puzzle * linebytes
+	lw t5, ImgInfo_lbytes(a0)
+	div t3, a1, a5 # t3 (row) = n // m
+	mul t3, t3, a3 # t3 = height * row
+	mul t3, t3, t5 # t3 = linebytes * height * row
 
+	rem t4, a1, a5 # t4 (column) = n % m
+	mul t4, t4, a4 # t4 = width_in_bytes * column
+	add t0, t3, t4
+	lw t3, ImgInfo_imdat(a0)
+	add t0, t0, t3 # t0 - address of first pixel of first puzzle
+
+	div t3, a2, a5 # t3 (row) = n // m
+	mul t3, t3, a3 # t3 = height * row
+	mul t3, t3, t5 # t3 = linebytes * height * row
+
+	rem t4, a2, a5 # t4 (column) = n % m
+	mul t4, t4, a4 # t4 = width_in_bytes * column
+	add t1, t3, t4
+	lw t3, ImgInfo_imdat(a0)
+	add t1, t1, t3 # t1 - address of first pixel of second puzzle
+	mv t3, a3
+	mv t4, a4
+
+# variables
+# t0 - address of current pixel of first puzzle
+# t1 - address of current pixel of second puzzle
+# t3 - height counter (in pixels)
+# t4 - width counter (in bytes)
+
+exchange_line:
+	mv t4, a4 # reset width counter
+
+exchange_byte:
+	lb t5, (t0)
+	lb t6, (t1)
+	sb t5, (t1)
+	sb t6, (t0)
+
+	addi t0, t0, 1 # update addresses
+	addi t1, t1, 1
+
+	addi t4, t4, -1 # update width counter
+	bgt t4, zero, exchange_byte
+
+	lw t5, ImgInfo_lbytes(a0)
+	add t0, t0, t5 # update addresses
+	add t1, t1, t5
+	sub t0, t0, a4
+	sub t1, t1, a4
+	addi t3, t3, -1 # update height counter
+
+	bgt t3, zero, exchange_line
+
+exchange_puzzles_exit:
+	jr ra
 
 #============================================================================
 # read_bmp:
