@@ -74,12 +74,14 @@ spread_tiles:
 	mv s0, a0 # save a0 for later
 
 	lw a3, ImgInfo_height(a0)
+	bgt a1, a3, spread_tiles_exit
 	div a3, a3, a1 # a3 - height of one puzzle in pixels
 
 	lw t0, ImgInfo_width(a0)
+	bgt a2, t0, spread_tiles_exit
 	div t0, t0, a2
 	add a4, t0, t0
-	add a4, a4, t0 # a6 - width of one puzzle in bytes
+	add a4, a4, t0 # a4 - width of one puzzle in bytes
 	mv a5, a2
 	li a7, system_RandIntRange
 	mul a1, a1, a2
