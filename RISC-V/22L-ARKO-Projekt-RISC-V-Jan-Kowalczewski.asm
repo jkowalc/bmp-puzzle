@@ -74,24 +74,48 @@ spread_tiles:
 	mv s0, a0 # save a0 for later
 
 	lw a3, ImgInfo_height(a0)
-	div a3, a3, a1 # a3 - height of one puzzle in pixels
+	bgt a1, a3, spread_tiles_exit # img height has to be at least n
+	div a3, a3, a1 # height of one puzzle in pixels = height // n
 
 	lw t0, ImgInfo_width(a0)
+	bgt a2, t0, spread_tiles_exit # img width has to be at least m
+
+	# width of one puzzle in bytes = 3 * ( width // m )
 	div t0, t0, a2
 	add a4, t0, t0
-	add a4, a4, t0 # a6 - width of one puzzle in bytes
-	mv a5, a2
-	li a7, system_RandIntRange
+	add a4, a4, t0
+
+	mv a5, a2 # save m parameter for exchange_puzzles func
+	li a7, system_RandIntRange # load system service number, won't change in loop
+
+	# Fisher–Yates shuffle algorithm
+	# int j;
+	# for (int i = max_puzzle_num; i>0; i--)
+	# {
+	# 	j = RandIntRange(0, i)
+	#	exchange_puzzles(i, j)
+	# }
+
+	# a1 - i
+	# i = m * n -1
 	mul a1, a1, a2
 	addi a1, a1, -1
 
 spread_tiles_loop:
+
+	# generate random int
+	# upper bound already in a1
 	li a0, 0
 	ecall
+
+	# exchange puzzles i and j
+	# i already in a1
+	# height, width, m already in a3, a4, a5
 	mv a2, a0
 	mv a0, s0
 	jal exchange_puzzles
-	addi a1, a1, -1
+
+	addi a1, a1, -1 # i--
 	bgt a1, zero, spread_tiles_loop
 
 
@@ -112,29 +136,36 @@ spread_tiles_exit:
 #	a5 - m parameter
 # return value:
 #	none
-exchange_puzzles: # address = column * width_1_puzzle + row * height_1_puzzle * linebytes
+exchange_puzzles:
+	# address offset = column * width_1_puzzle_in_bytes + row * height_1_puzzle * linebytes
+	# row = n // m
+	# column = n % m
 	lw t5, ImgInfo_lbytes(a0)
-	div t3, a1, a5 # t3 (row) = n // m
-	mul t3, t3, a3 # t3 = height * row
-	mul t3, t3, t5 # t3 = linebytes * height * row
+	div t3, a1, a5
+	mul t3, t3, a3
+	mul t3, t3, t5 # t3 = linebytes * height_1_puzzle * (n // m)
 
-	rem t4, a1, a5 # t4 (column) = n % m
-	mul t4, t4, a4 # t4 = width_in_bytes * column
-	add t0, t3, t4
+	rem t4, a1, a5
+	mul t4, t4, a4 # t4 = width_1_puzzle_in_bytes * (n % m)
+
+	add t0, t3, t4 # t0 - address offset
+
 	lw t3, ImgInfo_imdat(a0)
 	add t0, t0, t3 # t0 - address of first pixel of first puzzle
 
-	div t3, a2, a5 # t3 (row) = n // m
-	mul t3, t3, a3 # t3 = height * row
-	mul t3, t3, t5 # t3 = linebytes * height * row
-
-	rem t4, a2, a5 # t4 (column) = n % m
-	mul t4, t4, a4 # t4 = width_in_bytes * column
+	# the same calculation for second puzzle
+	div t3, a2, a5
+	mul t3, t3, a3
+	mul t3, t3, t5
+	rem t4, a2, a5
+	mul t4, t4, a4
 	add t1, t3, t4
 	lw t3, ImgInfo_imdat(a0)
-	add t1, t1, t3 # t1 - address of first pixel of second puzzle
-	mv t3, a3
-	mv t4, a4
+	add t1, t1, t3
+	# t1 - address of first pixel of second puzzle
+
+	mv t3, a3 # initialize height counter
+	mv t4, a4 # initialize width counter
 
 # variables
 # t0 - address of current pixel of first puzzle
@@ -146,22 +177,27 @@ exchange_line:
 	mv t4, a4 # reset width counter
 
 exchange_byte:
+	# exchange bytes
 	lb t5, (t0)
 	lb t6, (t1)
 	sb t5, (t1)
 	sb t6, (t0)
 
-	addi t0, t0, 1 # update addresses
+	# update addresses
+	addi t0, t0, 1
 	addi t1, t1, 1
 
 	addi t4, t4, -1 # update width counter
 	bgt t4, zero, exchange_byte
 
 	lw t5, ImgInfo_lbytes(a0)
-	add t0, t0, t5 # update addresses
+
+	# update addresses
+	add t0, t0, t5
 	add t1, t1, t5
 	sub t0, t0, a4
 	sub t1, t1, a4
+
 	addi t3, t3, -1 # update height counter
 
 	bgt t3, zero, exchange_line
