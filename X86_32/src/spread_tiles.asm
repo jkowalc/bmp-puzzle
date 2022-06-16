@@ -29,6 +29,7 @@ spread_tiles:
     mov eax, [ecx] ; load width
     cmp esi, eax
     jg spread_tiles_exit ; if m > width exit (not allowed)
+    xor edx, edx ; edx = 0
     div esi ; width // m
     push esi ; push m for exchange_puzzles
     lea eax, [eax + 2*eax] ; eax = 3 * (width // m)
@@ -38,6 +39,7 @@ spread_tiles:
     mov eax, [ecx+4] ; load height
     cmp ebx, eax
     jg spread_tiles_exit ; if n > height exit (not allowed)
+    xor edx, edx
     div ebx ; height // n
     push eax ; push height for exchange_puzzles
 
@@ -53,10 +55,11 @@ spread_tiles:
 
 spread_tiles_loop:
     call rand
+    xor edx, edx
     div ebx ; edx = randint % i
     push edx ; push second puzzle for exchange_puzzles
     dec ebx ; temp decrement ebx
-    push ebx ; push
+    push ebx ; push first puzzle for exchange_puzzles
     inc ebx ; restore ebx
 
     call exchange_puzzles
@@ -67,6 +70,7 @@ spread_tiles_loop:
     jg spread_tiles_loop
 
 spread_tiles_exit:
+    add esp, 16 ; pop other exchange_puzzles arguments
     pop esi
     pop ebx
 
@@ -98,38 +102,40 @@ exchange_puzzles:
     mov esi, [ebp+24] ; load m
     xor edx, edx ; edx = 0
     div esi ; puzzle_num // m
-    mov esi, [ebp+16] ; (n//m) * height_1_puzzle
+    mov esi, [ebp+16] ; (num//m) * height_1_puzzle
     mul esi
     mov ecx, [ebp+28] ; load ImgInfo
     mov esi, [ecx+8] ; load linebytes
-    mul esi ; linebytes * height_1_puzzle * (n//m)
+    mul esi ; linebytes * height_1_puzzle * (num//m)
     mov ebx, eax ; save result
 
     mov eax, [ebp+8] ; load num of first puzzle
     mov esi, [ebp+24] ; load m
+    xor edx, edx
     div esi
     mov eax, edx ; puzzle_num % m
     mov esi, [ebp+20] ; load width of one puzzle
-    mul esi ; width_1_puzzle_in_bytes * (n % m)
+    mul esi ; width_1_puzzle_in_bytes * (num % m)
     add ebx, eax
 
     ; the same calculation for second puzzle
-    mov eax, [ebp+12]
-    mov esi, [ebp+24]
-    div esi
-    mov esi, [ebp+16] ; (n//m) * height_1_puzzle
+    mov eax, [ebp+12] ; load num of second puzzle
+    mov esi, [ebp+24] ; load m
+    xor edx, edx ; edx = 0
+    div esi ; puzzle_num // m
+    mov esi, [ebp+16] ; (num//m) * height_1_puzzle
     mul esi
-    mov ecx, [ebp+28]
-    mov esi, [ecx+8]
+    mov esi, [ecx+8] ; load linebytes
     mul esi
-    mov esi, eax
+    mov esi, eax ; save result
 
-    mov eax, [ebp+12]
-    mov edi, [ebp+24]
-    div edi
+    mov eax, [ebp+12] ; load num of second puzzle
+    mov edi, [ebp+24] ; load m
+    xor edx, edx ; edx = 0
+    div edi ; puzzle_num % m
     mov eax, edx
-    mov edi, [ebp+20]
-    mul edi
+    mov edi, [ebp+20] ; load width of one puzzle
+    mul edi ; width_1_puzzle_in_bytes * (num % m)
     add esi, eax
 
     mov ecx, [ecx+12] ; load pImg
