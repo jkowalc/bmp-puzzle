@@ -1,2 +1,7 @@
 */RARS.jar
 RISC-V/bmp_sample.asm
+.vscode/tasks.json
+.vscode/configurationCache.log
+.vscode/dryrun.log
+.vscode/settings.json
+.vscode/targets.log
