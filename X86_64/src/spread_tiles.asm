@@ -6,7 +6,7 @@ extern rand
 ;   [ecx] - width
 ;   [ecx+4] - height
 ;   [ecx+8] - linebytes
-;   [ecx+12] - pImg
+;   [ecx+16] - pImg
 ;============================================================================
 ; spread_tiles
 ; arguments:
@@ -22,6 +22,7 @@ spread_tiles:
     push r14
     push r15
 
+    ; important information saved in the only saved registers rbx and r12-15
     mov r12, rdi ; save ImgInfo address for exchange_puzzles
     mov r13d, edx ; save m for exchange_puzzles
 
@@ -128,11 +129,11 @@ exchange_puzzles:
     mul ecx ; width_1_puzzle_in_bytes * (num % m)
     add r12d, eax
 
-    mov rbx, [r9+12] ; load pImg
+    mov rbx, [r9+16] ; load pImg
     add r11, rbx ; address = base + offset
     add r12, rbx ; address = base + offset
 
-    mov r8d, edx ; init height counter
+    mov r8d, r13d ; init height counter
     mov r13d, ecx ; init width counter
 
 ; r11 - address of current pixel of first puzzle
@@ -158,11 +159,11 @@ exchange_byte:
     jg exchange_byte
 
     mov edx, [r9+8] ; load linebytes
-    add r11, edx
-    add r12, edx
+    add r11, rdx
+    add r12, rdx
 
-    sub r11, ecx
-    sub r12, ecx
+    sub r11, rcx
+    sub r12, rcx
 
     dec r8d ; update height counter
     jg exchange_line
