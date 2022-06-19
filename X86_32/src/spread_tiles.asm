@@ -146,7 +146,7 @@ exchange_puzzles:
     mov edi, [ebp+20] ; init width counter
 
 ; ebx - address of current pixel of first puzzle
-; esi - address of current pixel of first puzzle
+; esi - address of current pixel of second puzzle
 ; ecx - height counter (in pixels)
 ; edi - width counter (in bytes)
 
