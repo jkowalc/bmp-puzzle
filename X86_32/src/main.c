@@ -9,8 +9,13 @@ int main(int argc, char *argv[])
     srand(time(NULL));
     char* ifname = "source.bmp";
     char* ofname = "result.bmp";
-    u_int32_t n = 4;
-    u_int32_t m = 3;
+    if(argc < 3)
+    {
+        printf("Too little arguments. Expected: ./main [n] [m]\n");
+        return 0;
+    }
+    u_int32_t n = atoi(argv[1]);
+    u_int32_t m = atoi(argv[2]);
     ImageInfo* imgInfo = readBmp(ifname);
     if(imgInfo == NULL)
     {

@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-m32 -Wall
+CFLAGS=-m32 -Wall -g
 
 all:	cc_img cc_main asm add clean
 add:
