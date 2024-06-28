@@ -5,3 +5,5 @@ RISC-V/bmp_sample.asm
 .vscode/dryrun.log
 .vscode/settings.json
 .vscode/targets.log
+.idea
+**/dist
