@@ -1,3 +1,7 @@
-# 22L ARKO Projekt RISC-V Puzzle losowe Jan Kowalczewski
+# BMP Puzzle
 
-Projekt samodzielny z przedmiotu ARKO w semestrze 22L - Assembler RISC-V, x86, x86_64
+A program for shuffling parts of a BMP image written in three versions:
+
+- RISC-V assembly
+- x86 32-bit assembly
+- x86 64-bit assembly
